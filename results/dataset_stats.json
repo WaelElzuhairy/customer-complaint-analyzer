@@ -1,0 +1,35 @@
+{
+  "total_filtered": 107000,
+  "train_size": 74900,
+  "val_size": 16050,
+  "test_size": 16050,
+  "num_product_classes": 9,
+  "num_issue_groups": 8,
+  "product_distribution": {
+    "Student loan": 15000,
+    "Vehicle loan/lease": 15000,
+    "Credit card": 15000,
+    "Checking/savings account": 15000,
+    "Mortgage": 15000,
+    "Debt collection": 15000,
+    "Money transfer": 15000,
+    "Credit reporting": 1000,
+    "Personal/payday loan": 1000
+  },
+  "issue_group_distribution": {
+    "Loan Servicing": 39205,
+    "Account Access": 17293,
+    "Technical/App": 11738,
+    "Reporting/Collections": 11627,
+    "Billing/Payment": 8993,
+    "Fraud/Security": 7018,
+    "Other": 6260,
+    "Customer Service": 4866
+  },
+  "priority_distribution": {
+    "Low": 48654,
+    "High": 37657,
+    "Critical": 19264,
+    "Medium": 1425
+  }
+}

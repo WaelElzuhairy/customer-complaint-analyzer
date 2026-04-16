@@ -1,0 +1,121 @@
+{
+  "model": "baseline_product",
+  "accuracy": 0.8756386292834891,
+  "precision_macro": 0.8652290990019479,
+  "recall_macro": 0.8959012345679012,
+  "f1_macro": 0.8787445428540714,
+  "f1_weighted": 0.8761314529222303,
+  "per_class_f1": {
+    "Checking/savings account": 0.7968006917423259,
+    "Credit card": 0.829082774049217,
+    "Credit reporting": 0.8982035928143712,
+    "Debt collection": 0.8631851532153647,
+    "Money transfer": 0.8436148417937628,
+    "Mortgage": 0.9413339281730984,
+    "Personal/payday loan": 0.8792569659442725,
+    "Student loan": 0.9565217391304348,
+    "Vehicle loan/lease": 0.9007011988237955
+  },
+  "classification_report": "                          precision    recall  f1-score   support\n\nChecking/savings account       0.78      0.82      0.80      2250\n             Credit card       0.83      0.82      0.83      2250\n        Credit reporting       0.82      1.00      0.90       150\n         Debt collection       0.84      0.89      0.86      2250\n          Money transfer       0.86      0.82      0.84      2250\n                Mortgage       0.94      0.94      0.94      2250\n    Personal/payday loan       0.82      0.95      0.88       150\n            Student loan       0.98      0.94      0.96      2250\n      Vehicle loan/lease       0.92      0.88      0.90      2250\n\n                accuracy                           0.88     16050\n               macro avg       0.87      0.90      0.88     16050\n            weighted avg       0.88      0.88      0.88     16050\n",
+  "confusion_matrix": [
+    [
+      1843,
+      144,
+      1,
+      21,
+      208,
+      15,
+      2,
+      3,
+      13
+    ],
+    [
+      161,
+      1853,
+      5,
+      119,
+      52,
+      11,
+      9,
+      5,
+      35
+    ],
+    [
+      0,
+      0,
+      150,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      16,
+      91,
+      22,
+      2000,
+      5,
+      32,
+      4,
+      10,
+      70
+    ],
+    [
+      300,
+      59,
+      0,
+      10,
+      1853,
+      15,
+      1,
+      2,
+      10
+    ],
+    [
+      25,
+      13,
+      2,
+      32,
+      14,
+      2110,
+      1,
+      20,
+      33
+    ],
+    [
+      2,
+      0,
+      0,
+      0,
+      1,
+      4,
+      142,
+      1,
+      0
+    ],
+    [
+      8,
+      12,
+      1,
+      74,
+      5,
+      14,
+      5,
+      2112,
+      19
+    ],
+    [
+      21,
+      48,
+      3,
+      128,
+      5,
+      32,
+      9,
+      13,
+      1991
+    ]
+  ]
+}

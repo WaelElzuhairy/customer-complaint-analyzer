@@ -1,0 +1,101 @@
+{
+  "model": "baseline_issue_group",
+  "accuracy": 0.7060436137071651,
+  "precision_macro": 0.6172701006745184,
+  "recall_macro": 0.6343335637535268,
+  "f1_macro": 0.6208086135647649,
+  "f1_weighted": 0.7106983693591544,
+  "per_class_f1": {
+    "Account Access": 0.647010647010647,
+    "Billing/Payment": 0.659843056977141,
+    "Customer Service": 0.4818237831176833,
+    "Fraud/Security": 0.4824399260628466,
+    "Loan Servicing": 0.8891021725852892,
+    "Other": 0.5057251908396947,
+    "Reporting/Collections": 0.6198892112898972,
+    "Technical/App": 0.6806349206349206
+  },
+  "classification_report": "                       precision    recall  f1-score   support\n\n       Account Access       0.68      0.62      0.65      2557\n      Billing/Payment       0.60      0.73      0.66      1330\n     Customer Service       0.43      0.55      0.48       705\n       Fraud/Security       0.48      0.48      0.48      1087\n       Loan Servicing       0.91      0.87      0.89      5864\n                Other       0.46      0.57      0.51       934\nReporting/Collections       0.58      0.66      0.62      1767\n        Technical/App       0.80      0.59      0.68      1806\n\n             accuracy                           0.71     16050\n            macro avg       0.62      0.63      0.62     16050\n         weighted avg       0.72      0.71      0.71     16050\n",
+  "confusion_matrix": [
+    [
+      1580,
+      263,
+      50,
+      102,
+      178,
+      160,
+      139,
+      85
+    ],
+    [
+      151,
+      967,
+      17,
+      37,
+      28,
+      70,
+      27,
+      33
+    ],
+    [
+      36,
+      26,
+      391,
+      71,
+      18,
+      17,
+      131,
+      15
+    ],
+    [
+      59,
+      41,
+      125,
+      522,
+      33,
+      76,
+      193,
+      38
+    ],
+    [
+      148,
+      45,
+      79,
+      49,
+      5095,
+      105,
+      326,
+      17
+    ],
+    [
+      97,
+      79,
+      5,
+      61,
+      81,
+      530,
+      4,
+      77
+    ],
+    [
+      55,
+      33,
+      192,
+      142,
+      153,
+      10,
+      1175,
+      7
+    ],
+    [
+      201,
+      147,
+      59,
+      93,
+      11,
+      194,
+      29,
+      1072
+    ]
+  ]
+}

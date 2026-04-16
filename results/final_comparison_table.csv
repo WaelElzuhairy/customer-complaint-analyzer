@@ -1,0 +1,4 @@
+Model,Accuracy,Macro F1,Macro Prec.,Macro Recall,Weighted F1
+TF-IDF + LR (Baseline),0.8756,0.8787,0.8652,0.8959,0.8761
+BiLSTM + Attention,0.8673,0.8834,0.8832,0.8851,0.8679
+DistilBERT (Fine-Tuned),0.8862,0.8887,0.8850,0.8932,0.8865
