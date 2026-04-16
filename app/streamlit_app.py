@@ -117,9 +117,13 @@ EXAMPLE_COMPLAINTS = {
 # Model loading (cached)
 # ---------------------------------------------------------------------------
 
-@st.cache_resource(show_spinner="Loading models…")
+@st.cache_resource(show_spinner="Loading models… (first run may take 2-3 min to download from HuggingFace)")
 def load_analyzer():
-    """Load the ComplaintAnalyzer with all models cached."""
+    """Load the ComplaintAnalyzer with all models cached.
+
+    On first run (e.g. Streamlit Cloud), models are auto-downloaded from
+    HuggingFace Hub (~280 MB total). Subsequent runs use the cached models.
+    """
     from app.inference import ComplaintAnalyzer
     return ComplaintAnalyzer()
 

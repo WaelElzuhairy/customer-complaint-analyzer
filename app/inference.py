@@ -31,6 +31,53 @@ logger = logging.getLogger(__name__)
 
 MODELS_DIR  = BASE_DIR / "models"
 RESULTS_DIR = BASE_DIR / "results"
+HF_REPO     = "Wael-Elzuhairy/complaint-analyzer-models"
+
+
+# ===========================================================================
+# Auto-download models from HuggingFace Hub if not present locally
+# ===========================================================================
+
+def download_models_if_needed(models_dir: Path = None) -> None:
+    """Check for missing model files and download them from HuggingFace Hub.
+
+    Safe to call every startup — skips files that already exist.
+    Works on localhost (after git clone) and Streamlit Cloud.
+    """
+    if models_dir is None:
+        models_dir = MODELS_DIR
+
+    try:
+        from huggingface_hub import hf_hub_download, snapshot_download
+    except ImportError:
+        logger.warning("huggingface_hub not installed — cannot auto-download models.")
+        return
+
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Single-file models ────────────────────────────────────────────────────
+    single_files = [
+        "bilstm_attention.pt",
+        "baseline_pipeline_product.joblib",
+        "baseline_pipeline_issue_group.joblib",
+    ]
+    for fname in single_files:
+        if not (models_dir / fname).exists():
+            logger.info(f"Downloading {fname} from HuggingFace Hub…")
+            hf_hub_download(repo_id=HF_REPO, filename=fname,
+                            local_dir=str(models_dir))
+            logger.info(f"  Done: {fname}")
+
+    # ── DistilBERT folder (~255 MB) ───────────────────────────────────────────
+    distilbert_weights = models_dir / "distilbert_best_product" / "model.safetensors"
+    if not distilbert_weights.exists():
+        logger.info("Downloading DistilBERT model (~255 MB) from HuggingFace Hub…")
+        snapshot_download(
+            repo_id=HF_REPO,
+            local_dir=str(models_dir),
+            allow_patterns="distilbert_best_product/*",
+        )
+        logger.info("  Done: distilbert_best_product/")
 
 MAX_LEN_BILSTM      = 256
 MAX_LEN_DISTILBERT  = 256
@@ -89,6 +136,10 @@ class ComplaintAnalyzer:
     """
 
     def __init__(self):
+        # Download any missing models from HuggingFace Hub before first use.
+        # This is instant when models already exist locally.
+        download_models_if_needed()
+
         self._baseline = None
         self._bilstm = None
         self._vocab = None
