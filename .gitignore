@@ -1,0 +1,61 @@
+# ── Data (large, re-downloadable from CFPB) ────────────────────────────────
+data/raw/
+data/processed/
+
+# ── Models (uploaded to HuggingFace Hub separately) ────────────────────────
+models/distilbert_best_product/
+models/distilbert_checkpoints_product/
+models/bilstm_attention.pt
+models/baseline_pipeline_product.joblib
+models/baseline_pipeline_issue_group.joblib
+
+# Keep small model artifacts (label encoders + vocab) in the repo
+!models/label_encoder_product.joblib
+!models/label_encoder_issue_group.joblib
+!models/vocab.json
+
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ── Jupyter ──────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs & temp ───────────────────────────────────────────────────────────────
+*.log
+*.tmp
+tmp/
+temp/
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+*.pem
+*_secret*

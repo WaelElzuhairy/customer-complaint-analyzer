@@ -1,0 +1,28 @@
+# Core ML
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.6.1
+torch==2.7.1
+transformers>=4.45.0
+datasets>=3.0.0
+accelerate>=0.34.0
+tokenizers>=0.20.0
+
+# NLP
+nltk>=3.9.1
+sumy>=0.11.0
+rouge-score>=0.1.2
+
+# Visualization
+matplotlib>=3.9.2
+seaborn==0.13.2
+plotly>=5.24.0
+wordcloud>=1.9.3
+
+# Web App
+streamlit>=1.38.0
+
+# Utilities
+tqdm>=4.66.5
+joblib>=1.4.2
+requests>=2.31.0
