@@ -100,13 +100,46 @@ The app will open at `http://localhost:8501`
 
 ## Models
 
+Pre-trained models are hosted on HuggingFace Hub:
+**[`Wael-Elzuhairy/complaint-analyzer-models`](https://huggingface.co/Wael-Elzuhairy/complaint-analyzer-models)**
+
 | Model | File | Size |
 |-------|------|------|
-| TF-IDF + LR | `models/baseline_pipeline_product.joblib` | ~50 MB |
-| BiLSTM+Attention | `models/bilstm_attention.pt` | ~25 MB |
-| Vocabulary | `models/vocab.json` | ~3 MB |
-| DistilBERT | `models/distilbert_best_product/` | ~270 MB |
-| Label encoders | `models/label_encoder_*.joblib` | <1 MB |
+| TF-IDF + LR | `baseline_pipeline_product.joblib` | 5.2 MB |
+| Issue Group LR | `baseline_pipeline_issue_group.joblib` | 4.8 MB |
+| BiLSTM+Attention | `bilstm_attention.pt` | 13.8 MB |
+| DistilBERT | `distilbert_best_product/` | 255 MB |
+| Label encoders | `models/label_encoder_*.joblib` | included in repo |
+| Vocabulary | `models/vocab.json` | included in repo |
+
+### Download pre-trained models
+
+Instead of training from scratch, download the pre-trained models from HuggingFace Hub:
+
+```python
+from huggingface_hub import hf_hub_download, snapshot_download
+import os
+
+HF_REPO = "Wael-Elzuhairy/complaint-analyzer-models"
+os.makedirs("models", exist_ok=True)
+
+# Download BiLSTM + both baselines (fast, ~24 MB total)
+for fname in ["bilstm_attention.pt", "baseline_pipeline_product.joblib",
+              "baseline_pipeline_issue_group.joblib"]:
+    hf_hub_download(repo_id=HF_REPO, filename=fname, local_dir="models")
+
+# Download DistilBERT (~255 MB)
+snapshot_download(repo_id=HF_REPO, local_dir="models",
+                  allow_patterns="distilbert_best_product/*")
+
+print("Models ready in models/")
+```
+
+Or via the Hugging Face CLI:
+```bash
+pip install huggingface_hub
+huggingface-cli download Wael-Elzuhairy/complaint-analyzer-models --local-dir models
+```
 
 ---
 
@@ -128,18 +161,18 @@ After training, results are saved to `results/`:
 
 ## Deployment on Streamlit Community Cloud
 
-### 1. Push to GitHub
+### 1. Repository is already on GitHub
 
+The code is at: **https://github.com/WaelElzuhairy/customer-complaint-analyzer**
+
+Clone it with:
 ```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/customer-complaint-analyzer.git
-git push -u origin main
+git clone https://github.com/WaelElzuhairy/customer-complaint-analyzer.git
+cd customer-complaint-analyzer
 ```
 
-> **Note:** Models in `models/` are large. Use [Git LFS](https://git-lfs.github.com/) or host
-> pre-trained models on HuggingFace Hub and load them at runtime.
+> **Note:** Large model files are excluded from the repo and hosted on HuggingFace Hub.
+> See the [Models section](#models) above for download instructions.
 
 ### 2. Deploy on Streamlit Community Cloud
 
@@ -187,7 +220,7 @@ If using this project for academic work:
   title  = {Customer Complaint Analyzer: Comparing Fine-Tuned Transformers with Attention Models},
   author = {[Your Name]},
   year   = {2026},
-  url    = {https://github.com/YOUR_USERNAME/customer-complaint-analyzer}
+  url    = {https://github.com/WaelElzuhairy/customer-complaint-analyzer}
 }
 ```
 
