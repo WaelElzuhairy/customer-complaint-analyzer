@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
-from datasets import Dataset as HFDataset
 from transformers import (
     DistilBertTokenizerFast,
     DistilBertForSequenceClassification,
@@ -111,7 +110,7 @@ def tokenize_data(
     labels: list[int],
     tokenizer: DistilBertTokenizerFast,
     max_length: int = 256,
-) -> HFDataset:
+):
     """Tokenize texts and create a HuggingFace Dataset.
 
     Args:
@@ -123,6 +122,7 @@ def tokenize_data(
     Returns:
         HuggingFace Dataset with tokenized inputs.
     """
+    from datasets import Dataset as HFDataset  # training-only dependency
     dataset = HFDataset.from_dict({"text": texts, "labels": labels})
 
     def tokenize_fn(examples):
