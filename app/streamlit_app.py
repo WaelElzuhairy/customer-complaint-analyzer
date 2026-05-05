@@ -65,15 +65,21 @@ p, span, label, div { color: #CBD5E1; }
 .stMarkdown p { color: #CBD5E1; }
 
 /* ── Text area ── */
-.stTextArea textarea {
+.stTextArea textarea,
+textarea,
+div[data-baseweb="textarea"] textarea {
     background: #0D1117 !important;
+    background-color: #0D1117 !important;
     border: 1px solid #1E2D3D !important;
     border-radius: 12px !important;
     color: #E2E8F0 !important;
     font-size: 0.95rem !important;
     padding: 14px !important;
-    transition: border-color 0.2s;
     caret-color: #6366f1 !important;
+}
+div[data-baseweb="textarea"] {
+    background: #0D1117 !important;
+    border-radius: 12px !important;
 }
 .stTextArea textarea:focus {
     border-color: rgba(99,102,241,0.5) !important;
@@ -313,25 +319,27 @@ def render_attention_html(tokens, weights):
     parts.append("</div>")
     return "".join(parts)
 
-def plot_proba_dark(all_probabilities, prediction, accent_color, height=220):
-    items   = sorted(all_probabilities.items(), key=lambda x: x[1], reverse=True)[:8]
-    labels  = [k[:24] for k, _ in items]
-    values  = [v for _, v in items]
-    colors  = [accent_color if lbl[:24] == prediction[:24] else "#1E2533" for lbl in labels]
-
-    fig, ax = plt.subplots(figsize=(3.6, height / 72))
-    bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1], height=0.6)
-    ax.set_xlim(0, 1)
-    ax.tick_params(labelsize=7, length=0)
-    ax.set_xlabel("")
-    ax.axvline(0, color="#1E2533", linewidth=0.5)
-    ax.grid(axis="x", linewidth=0.5)
-    for bar, val in zip(bars, values[::-1]):
-        ax.text(min(val + 0.02, 0.93), bar.get_y() + bar.get_height() / 2,
-                f"{val:.1%}", va="center", fontsize=7, color="#94A3B8")
-    ax.spines[:].set_visible(False)
-    plt.tight_layout(pad=0.4)
-    return fig
+def render_proba_html(all_probabilities, prediction, accent_color):
+    """Render probability bars as pure HTML — no matplotlib needed."""
+    items = sorted(all_probabilities.items(), key=lambda x: x[1], reverse=True)[:8]
+    rows  = []
+    for label, val in items:
+        is_pred  = label[:24] == prediction[:24]
+        bar_color = accent_color if is_pred else "#1E2533"
+        txt_color = "#E2E8F0"  if is_pred else "#64748B"
+        pct       = f"{val:.1%}"
+        width     = f"{val * 100:.1f}%"
+        rows.append(
+            f"<div style='margin-bottom:6px;'>"
+            f"<div style='display:flex;justify-content:space-between;margin-bottom:3px;'>"
+            f"<span style='font-size:0.72rem;color:{txt_color};'>{label[:26]}</span>"
+            f"<span style='font-size:0.72rem;color:#475569;font-weight:600;'>{pct}</span>"
+            f"</div>"
+            f"<div style='background:#0D1117;border-radius:99px;height:5px;'>"
+            f"<div style='background:{bar_color};width:{width};height:5px;border-radius:99px;transition:width 0.4s;'></div>"
+            f"</div></div>"
+        )
+    return "<div style='margin-top:8px;'>" + "".join(rows) + "</div>"
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
@@ -506,9 +514,8 @@ if run_all and complaint_text.strip():
             st.progress(conf)
 
             if r.get("all_probabilities"):
-                fig = plot_proba_dark(r["all_probabilities"], pred, meta["color"])
-                st.pyplot(fig, use_container_width=True)
-                plt.close(fig)
+                html = render_proba_html(r["all_probabilities"], pred, meta["color"])
+                st.markdown(html, unsafe_allow_html=True)
 
     # ── Attention weights ──────────────────────────────────────────────────
     bilstm_r = results.get("bilstm", {})
@@ -524,24 +531,10 @@ if run_all and complaint_text.strip():
     if iss.get("all_probabilities"):
         st.markdown("---")
         st.markdown('<div class="section-label">Issue Group Breakdown</div>', unsafe_allow_html=True)
-
-        items  = sorted(iss["all_probabilities"].items(), key=lambda x: x[1], reverse=True)
-        labels = [k for k, _ in items]
-        values = [v for _, v in items]
-        colors = ["#6366f1" if k == iss["prediction"] else "#1E2533" for k in labels]
-
-        fig, ax = plt.subplots(figsize=(9, 3))
-        bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1], height=0.55)
-        ax.set_xlim(0, 1)
-        ax.tick_params(labelsize=8, length=0)
-        ax.grid(axis="x", linewidth=0.5)
-        ax.spines[:].set_visible(False)
-        for bar, val in zip(bars, values[::-1]):
-            ax.text(min(val + 0.015, 0.93), bar.get_y() + bar.get_height() / 2,
-                    f"{val:.1%}", va="center", fontsize=8, color="#94A3B8")
-        plt.tight_layout(pad=0.5)
-        st.pyplot(fig, use_container_width=True)
-        plt.close(fig)
+        html = render_proba_html(iss["all_probabilities"], iss["prediction"], "#6366f1")
+        col_iss, _ = st.columns([2, 1])
+        with col_iss:
+            st.markdown(html, unsafe_allow_html=True)
 
     st.markdown(
         "<div style='margin-top:1.5rem;padding:10px 16px;background:rgba(16,185,129,0.07);"
