@@ -1,15 +1,6 @@
 """
 Customer Complaint Analyzer — Streamlit Demo App.
-
-Classifies consumer complaints using three models and displays:
-  - Product category prediction (all 3 models)
-  - Issue group prediction
-  - Priority level (rule-based)
-  - Extractive summary
-  - Attention weight visualization (BiLSTM)
-
-Run with:
-    streamlit run app/streamlit_app.py
+Dark-themed, modern SaaS UI.
 """
 
 import sys
@@ -19,357 +10,538 @@ from pathlib import Path
 import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+import matplotlib
 
-# Ensure project root is importable
+matplotlib.rcParams.update({
+    "figure.facecolor": "#0F1117",
+    "axes.facecolor":   "#0F1117",
+    "axes.edgecolor":   "#2D3748",
+    "axes.labelcolor":  "#94A3B8",
+    "xtick.color":      "#94A3B8",
+    "ytick.color":      "#94A3B8",
+    "text.color":       "#E2E8F0",
+    "grid.color":       "#1E2533",
+    "grid.alpha":       1.0,
+})
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 RESULTS_DIR = BASE_DIR / "results"
 MODELS_DIR  = BASE_DIR / "models"
 
-# ---------------------------------------------------------------------------
-# Page config (must be first Streamlit call)
-# ---------------------------------------------------------------------------
+# ── Page config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Customer Complaint Analyzer",
-    page_icon="📋",
+    page_title="Complaint Analyzer",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ---------------------------------------------------------------------------
-# Custom CSS
-# ---------------------------------------------------------------------------
+# ── CSS ───────────────────────────────────────────────────────────────────────
 
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #1f3b6e;
-        margin-bottom: 0.2rem;
-    }
-    .sub-header {
-        font-size: 1rem;
-        color: #555;
-        margin-bottom: 1.5rem;
-    }
-    .model-card {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 1rem;
-        text-align: center;
-    }
-    .prediction-label {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #1f3b6e;
-    }
-    .priority-critical { color: white; background: #d62728; padding: 4px 12px; border-radius: 6px; font-weight: 700; }
-    .priority-high     { color: white; background: #ff7f0e; padding: 4px 12px; border-radius: 6px; font-weight: 700; }
-    .priority-medium   { color: #333;  background: #ffdd57; padding: 4px 12px; border-radius: 6px; font-weight: 700; }
-    .priority-low      { color: white; background: #2ca02c; padding: 4px 12px; border-radius: 6px; font-weight: 700; }
-    .winner-badge { color: white; background: #17a2b8; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+/* ── Base ── */
+.stApp { background: #080B12; }
+
+[data-testid="stSidebar"] {
+    background: #0D1117;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+[data-testid="stSidebar"] * { color: #CBD5E1 !important; }
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 { color: #F1F5F9 !important; }
+[data-testid="stSidebar"] .stDataFrame { border-radius: 8px; overflow: hidden; }
+
+/* ── Typography ── */
+h1, h2, h3, h4, h5, h6 { color: #F1F5F9 !important; }
+p, span, label, div { color: #CBD5E1; }
+.stMarkdown p { color: #CBD5E1; }
+
+/* ── Text area ── */
+.stTextArea textarea {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 12px !important;
+    color: #E2E8F0 !important;
+    font-size: 0.95rem !important;
+    padding: 14px !important;
+    transition: border-color 0.2s;
+}
+.stTextArea textarea:focus {
+    border-color: rgba(99,102,241,0.5) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+}
+.stTextArea label { color: #94A3B8 !important; font-size: 0.85rem !important; }
+
+/* ── Buttons ── */
+.stButton button[kind="primary"] {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    padding: 0.6rem 1.8rem !important;
+    box-shadow: 0 0 24px rgba(99,102,241,0.35) !important;
+    transition: all 0.2s !important;
+}
+.stButton button[kind="primary"]:hover {
+    box-shadow: 0 0 36px rgba(99,102,241,0.55) !important;
+    transform: translateY(-1px) !important;
+}
+.stButton button[kind="secondary"],
+.stButton button {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.09) !important;
+    color: #94A3B8 !important;
+    border-radius: 20px !important;
+    font-size: 0.82rem !important;
+    transition: all 0.2s !important;
+}
+.stButton button[kind="secondary"]:hover,
+.stButton button:hover {
+    background: rgba(255,255,255,0.08) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    color: #E2E8F0 !important;
+}
+
+/* ── Progress bars ── */
+.stProgress > div > div { background: rgba(255,255,255,0.06) !important; border-radius: 99px; }
+.stProgress > div > div > div { border-radius: 99px !important; }
+
+/* ── Spinner / alerts ── */
+.stSpinner > div { border-color: #6366f1 transparent transparent transparent !important; }
+.stInfo  { background: rgba(99,102,241,0.08) !important; border-left-color: #6366f1 !important; color: #A5B4FC !important; border-radius: 8px !important; }
+.stSuccess { background: rgba(16,185,129,0.08) !important; border-left-color: #10B981 !important; color: #6EE7B7 !important; border-radius: 8px !important; }
+.stWarning { background: rgba(245,158,11,0.08) !important; border-left-color: #F59E0B !important; color: #FCD34D !important; border-radius: 8px !important; }
+.stError   { background: rgba(239,68,68,0.08) !important;  border-left-color: #EF4444 !important; color: #FCA5A5 !important; border-radius: 8px !important; }
+
+/* ── Divider ── */
+hr { border-color: rgba(255,255,255,0.06) !important; }
+
+/* ── Selectbox / inputs ── */
+.stSelectbox > div > div {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+    color: #E2E8F0 !important;
+}
+
+/* ── DataFrames ── */
+.stDataFrame { border-radius: 10px; overflow: hidden; }
+[data-testid="stDataFrameResizable"] { background: #0D1117 !important; }
+
+/* ── Caption ── */
+.stCaption, .caption { color: #64748B !important; font-size: 0.8rem; }
+
+/* ── Custom components ── */
+.hero-title {
+    font-size: 2.6rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #E2E8F0 0%, #6366f1 60%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.15;
+    margin-bottom: 0.3rem;
+}
+.hero-sub {
+    font-size: 1rem;
+    color: #64748B;
+    margin-bottom: 1.8rem;
+}
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #475569;
+    margin-bottom: 0.5rem;
+}
+.glass-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 0.6rem;
+    backdrop-filter: blur(10px);
+}
+.model-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+}
+.model-pred {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    line-height: 1.2;
+}
+.conf-text {
+    font-size: 0.78rem;
+    color: #64748B;
+    margin-bottom: 0.6rem;
+}
+.winner-ring {
+    border: 1px solid rgba(99,102,241,0.4) !important;
+    box-shadow: 0 0 20px rgba(99,102,241,0.12);
+}
+.badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 99px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+.badge-critical { background: rgba(239,68,68,0.15);  color: #F87171; border: 1px solid rgba(239,68,68,0.3); }
+.badge-high     { background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); }
+.badge-medium   { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); }
+.badge-low      { background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.3); }
+.badge-neutral  { background: rgba(255,255,255,0.06); color: #94A3B8; border: 1px solid rgba(255,255,255,0.1); }
+.winner-star {
+    display: inline-block;
+    background: rgba(99,102,241,0.15);
+    color: #818CF8;
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 99px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    margin-left: 6px;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+.attn-wrap {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+}
+.stat-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.stat-pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 16px;
+    flex: 1;
+    min-width: 120px;
+}
+.stat-pill .label { font-size: 0.7rem; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+.stat-pill .value { font-size: 1.1rem; font-weight: 700; color: #E2E8F0; margin-top: 2px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------------------------
-# Example complaints
-# ---------------------------------------------------------------------------
+# ── Examples ──────────────────────────────────────────────────────────────────
 
 EXAMPLE_COMPLAINTS = {
-    "Credit Card Fraud": (
-        "I noticed several unauthorized charges on my credit card statement totaling over $800. "
-        "I did not make these purchases and believe my card information was stolen. "
-        "I have tried calling the bank multiple times but they keep putting me on hold for over an hour "
-        "and have not resolved the issue. I need these fraudulent charges reversed immediately."
-    ),
-    "Mortgage Payment Issue": (
-        "My mortgage servicer has been incorrectly applying my payments. I have been paying $200 extra "
-        "each month toward principal for the past year, but my balance has not decreased accordingly. "
-        "When I request a payment history breakdown they send incorrect statements. "
-        "I am concerned they are mismanaging my account and I could face issues at year end."
-    ),
-    "Credit Report Error": (
-        "I discovered an account on my credit report that does not belong to me. "
-        "The account shows a collection for $1,200 from a company I have never done business with. "
-        "I submitted a dispute with all three credit bureaus six weeks ago and have not received "
-        "any response. This incorrect information is hurting my credit score significantly."
-    ),
-    "Student Loan Servicer Problem": (
-        "My student loan servicer transferred my loans to a new company without proper notice. "
-        "The new servicer claims I owe more than my original balance due to capitalized interest "
-        "that was never disclosed to me. I am in the income-driven repayment plan and my monthly "
-        "payments should be based on my income but they are charging me the full standard amount."
-    ),
-    "Debt Collection Harassment": (
-        "A debt collection company has been calling me multiple times per day, including before 8am "
-        "and after 9pm. They have also contacted my employer and family members about the debt. "
-        "I sent them a written cease and desist letter via certified mail three weeks ago "
-        "but the calls continue. This appears to be a violation of the FDCPA."
-    ),
+    "Credit Fraud":     ("I noticed three unauthorized charges on my credit card totaling $1,247. "
+                         "I did not make these purchases and believe my card information was stolen online. "
+                         "I called the bank immediately but they refused to issue a provisional credit while "
+                         "investigating. It has been three weeks and the charges are still on my account."),
+    "Mortgage Error":   ("My mortgage servicer has been misapplying my extra principal payments for eight months. "
+                         "I pay $300 extra every month toward principal but my loan balance has barely moved. "
+                         "When I request a payment history they send incorrect statements that do not match my bank records."),
+    "Credit Report":    ("There is an account on my credit report that does not belong to me showing a $4,500 "
+                         "collection balance. I have never done business with this company. I disputed it with all "
+                         "three bureaus two months ago but it is still showing and my score dropped 80 points."),
+    "Student Loan":     ("My student loan servicer transferred my account without notice and the new servicer is "
+                         "charging me a higher monthly payment than my income-driven repayment plan allows. "
+                         "My original payment was $87 per month but they are now demanding $412."),
+    "Debt Harassment":  ("A debt collection agency calls me 12 to 15 times per day including before 8am and after 9pm. "
+                         "They contacted my employer and told coworkers about the debt. I sent a cease and desist "
+                         "letter by certified mail three weeks ago and the calls have not stopped. Clear FDCPA violation."),
 }
 
-# ---------------------------------------------------------------------------
-# Model loading (cached)
-# ---------------------------------------------------------------------------
+# ── Model loader ──────────────────────────────────────────────────────────────
 
-@st.cache_resource(show_spinner="Loading models… (first run may take 2-3 min to download from HuggingFace)")
+@st.cache_resource(show_spinner="Loading models… (first run may take 2–3 min to download from HuggingFace)")
 def load_analyzer():
-    """Load the ComplaintAnalyzer with all models cached.
-
-    On first run (e.g. Streamlit Cloud), models are auto-downloaded from
-    HuggingFace Hub (~280 MB total). Subsequent runs use the cached models.
-    """
     from app.inference import ComplaintAnalyzer
     return ComplaintAnalyzer()
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-# ---------------------------------------------------------------------------
-# Helper: attention visualization
-# ---------------------------------------------------------------------------
+MODEL_META = {
+    "baseline":   {"label": "TF-IDF + LogReg",       "color": "#6366f1", "accent": "rgba(99,102,241,0.15)"},
+    "bilstm":     {"label": "BiLSTM + Attention",     "color": "#8b5cf6", "accent": "rgba(139,92,246,0.15)"},
+    "distilbert": {"label": "DistilBERT Fine-Tuned",  "color": "#06b6d4", "accent": "rgba(6,182,212,0.15)"},
+}
 
-def render_attention_html(tokens: list[str], weights: list[float]) -> str:
-    """Render word-level attention as colored HTML spans."""
+PRIORITY_BADGE = {
+    "Critical": "badge-critical",
+    "High":     "badge-high",
+    "Medium":   "badge-medium",
+    "Low":      "badge-low",
+}
+
+def priority_html(p):
+    cls = PRIORITY_BADGE.get(p, "badge-neutral")
+    return f"<span class='badge {cls}'>{p}</span>"
+
+def render_attention_html(tokens, weights):
     if not tokens or not weights:
         return ""
-
     weights = np.array(weights[:len(tokens)])
     weights = weights / (weights.max() + 1e-9)
-
-    cmap = plt.cm.YlOrRd
-    html_parts = ["<div style='line-height:2.2; font-size:1rem; font-family:monospace;'>"]
-    for tok, w in zip(tokens[:40], weights[:40]):
-        rgba = cmap(float(w))
+    cmap = plt.cm.plasma
+    parts = ["<div style='line-height:2.4; font-size:0.92rem; font-family:monospace;'>"]
+    for tok, w in zip(tokens[:45], weights[:45]):
+        rgba  = cmap(float(w) * 0.85 + 0.15)
         r, g, b = int(rgba[0]*255), int(rgba[1]*255), int(rgba[2]*255)
-        text_color = "black" if w < 0.55 else "white"
-        html_parts.append(
-            f"<span style='background:rgb({r},{g},{b}); color:{text_color}; "
-            f"padding:2px 4px; margin:2px; border-radius:3px;'>{tok}</span>"
+        alpha = 0.18 + float(w) * 0.82
+        tc    = "#fff" if w > 0.45 else "#94A3B8"
+        parts.append(
+            f"<span style='background:rgba({r},{g},{b},{alpha:.2f}); color:{tc}; "
+            f"padding:3px 6px; margin:2px; border-radius:5px; display:inline-block;'>{tok}</span>"
         )
-    html_parts.append("</div>")
-    return "".join(html_parts)
+    parts.append("</div>")
+    return "".join(parts)
 
+def plot_proba_dark(all_probabilities, prediction, accent_color, height=220):
+    items   = sorted(all_probabilities.items(), key=lambda x: x[1], reverse=True)[:8]
+    labels  = [k[:24] for k, _ in items]
+    values  = [v for _, v in items]
+    colors  = [accent_color if lbl[:24] == prediction[:24] else "rgba(255,255,255,0.07)" for lbl in labels]
 
-# ---------------------------------------------------------------------------
-# Helper: probability bar chart
-# ---------------------------------------------------------------------------
-
-def plot_proba_chart(all_probabilities: dict, prediction: str, height: int = 250):
-    """Render a horizontal bar chart of class probabilities."""
-    sorted_items = sorted(all_probabilities.items(), key=lambda x: x[1], reverse=True)[:8]
-    labels = [k[:22] for k, _ in sorted_items]
-    values = [v for _, v in sorted_items]
-    colors = ["#17a2b8" if lbl[:22] == prediction[:22] else "#dee2e6" for lbl in labels]
-
-    fig, ax = plt.subplots(figsize=(3.5, height / 72))
-    bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1])
+    fig, ax = plt.subplots(figsize=(3.6, height / 72))
+    bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1], height=0.6)
     ax.set_xlim(0, 1)
-    ax.set_xlabel("Probability", fontsize=8)
-    ax.tick_params(labelsize=7)
-    ax.grid(axis="x", alpha=0.3)
+    ax.tick_params(labelsize=7, length=0)
+    ax.set_xlabel("")
+    ax.axvline(0, color="rgba(255,255,255,0.05)", linewidth=0.5)
+    ax.grid(axis="x", linewidth=0.5)
     for bar, val in zip(bars, values[::-1]):
-        ax.text(min(val + 0.01, 0.97), bar.get_y() + bar.get_height()/2,
-                f"{val:.2f}", va="center", fontsize=7)
-    plt.tight_layout(pad=0.5)
+        ax.text(min(val + 0.02, 0.93), bar.get_y() + bar.get_height() / 2,
+                f"{val:.1%}", va="center", fontsize=7, color="#94A3B8")
+    ax.spines[:].set_visible(False)
+    plt.tight_layout(pad=0.4)
     return fig
 
-
-# ---------------------------------------------------------------------------
-# Helper: priority badge
-# ---------------------------------------------------------------------------
-
-def priority_badge(priority: str) -> str:
-    cls_map = {
-        "Critical": "priority-critical",
-        "High": "priority-high",
-        "Medium": "priority-medium",
-        "Low": "priority-low",
-    }
-    css = cls_map.get(priority, "priority-low")
-    return f"<span class='{css}'>{priority}</span>"
-
-
-# ---------------------------------------------------------------------------
-# Sidebar
-# ---------------------------------------------------------------------------
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.header("About")
-    st.markdown("""
-    This app demonstrates three complaint classification models trained on the
-    **CFPB Consumer Complaint Database** (Aug 2023–present):
+    st.markdown("### Complaint Analyzer")
+    st.markdown("<span style='color:#475569;font-size:0.8rem;'>Three models. One verdict.</span>", unsafe_allow_html=True)
+    st.markdown("---")
 
-    | Model | Type |
-    |-------|------|
-    | TF-IDF + LR | Bag-of-words baseline |
-    | BiLSTM + Attention | Sequential deep learning |
-    | DistilBERT | Pretrained Transformer |
+    st.markdown("**Models**")
+    for key, m in MODEL_META.items():
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px;'>"
+            f"<span style='width:8px;height:8px;border-radius:50%;background:{m['color']};display:inline-block;'></span>"
+            f"<span style='font-size:0.85rem;color:#94A3B8;'>{m['label']}</span></div>",
+            unsafe_allow_html=True
+        )
 
-    **Outputs:**
-    - Product category
-    - Issue group (7 types)
-    - Priority level
-    - Extractive summary
-    """)
+    st.markdown("---")
+    st.markdown("**Trained on**")
+    st.markdown("<span style='color:#64748B;font-size:0.82rem;'>CFPB Consumer Complaint Database<br>107,000 complaints · 9 product classes</span>", unsafe_allow_html=True)
 
-    st.header("Model Comparison")
+    st.markdown("---")
     results_path = RESULTS_DIR / "comparison_table.csv"
     if results_path.exists():
         import pandas as pd
+        st.markdown("**Model Performance**")
         df = pd.read_csv(results_path, index_col=0)
-        st.dataframe(df.round(4), use_container_width=True)
+        st.dataframe(df.round(3), use_container_width=True)
     else:
-        st.info("Run all notebooks to see trained model metrics here.")
+        st.info("Run notebooks to see metrics here.")
 
-    st.header("Confusion Matrices")
+    st.markdown("---")
     cm_files = list(RESULTS_DIR.glob("confusion_matrix_*.png")) if RESULTS_DIR.exists() else []
     if cm_files:
-        selected_cm = st.selectbox("Select model:", [f.stem.replace("confusion_matrix_", "") for f in cm_files])
+        st.markdown("**Confusion Matrix**")
+        selected_cm = st.selectbox("Model:", [f.stem.replace("confusion_matrix_", "") for f in cm_files], label_visibility="collapsed")
         cm_path = RESULTS_DIR / f"confusion_matrix_{selected_cm}.png"
         if cm_path.exists():
             st.image(str(cm_path), use_container_width=True)
-    else:
-        st.info("Confusion matrices will appear after training.")
 
+    st.markdown("---")
+    st.markdown(
+        "<span style='color:#334155;font-size:0.75rem;'>"
+        "<a href='https://github.com/WaelElzuhairy/customer-complaint-analyzer' "
+        "style='color:#475569;text-decoration:none;'>GitHub</a> · "
+        "<a href='https://huggingface.co/Wael-Elzuhairy/complaint-analyzer-models' "
+        "style='color:#475569;text-decoration:none;'>HuggingFace</a></span>",
+        unsafe_allow_html=True
+    )
 
-# ---------------------------------------------------------------------------
-# Main area
-# ---------------------------------------------------------------------------
+# ── Hero ──────────────────────────────────────────────────────────────────────
 
-st.markdown('<div class="main-header">📋 Customer Complaint Analyzer</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-title">Customer Complaint Analyzer</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="sub-header">Compare TF-IDF, BiLSTM+Attention, and DistilBERT for classifying '
-    'CFPB consumer complaints</div>',
+    '<div class="hero-sub">Classify CFPB consumer complaints using TF-IDF, BiLSTM+Attention, and DistilBERT — side by side.</div>',
     unsafe_allow_html=True,
 )
 
-# Example buttons
-st.markdown("**Quick examples:**")
-example_cols = st.columns(len(EXAMPLE_COMPLAINTS))
+# ── Example pills ─────────────────────────────────────────────────────────────
+
+st.markdown('<div class="section-label">Quick Examples</div>', unsafe_allow_html=True)
+cols_ex = st.columns(len(EXAMPLE_COMPLAINTS))
 selected_example = None
-for col, (name, text) in zip(example_cols, EXAMPLE_COMPLAINTS.items()):
+for col, (name, text) in zip(cols_ex, EXAMPLE_COMPLAINTS.items()):
     if col.button(name, use_container_width=True):
         selected_example = text
 
-# Text input
-default_text = selected_example or ""
+# ── Input ─────────────────────────────────────────────────────────────────────
+
 complaint_text = st.text_area(
-    "Paste a consumer complaint narrative:",
-    value=default_text,
-    height=180,
-    placeholder="Type or paste a complaint here…",
-    help="Enter any financial consumer complaint text. Minimum ~20 words for best results.",
+    "Complaint narrative",
+    value=selected_example or "",
+    height=170,
+    placeholder="Paste or type a consumer complaint narrative here…",
+    label_visibility="collapsed",
 )
 
-run_all = st.button("🔍 Analyze Complaint", type="primary", disabled=not complaint_text.strip())
+col_btn, col_hint = st.columns([1, 5])
+with col_btn:
+    run_all = st.button("⚡ Analyze", type="primary", disabled=not complaint_text.strip(), use_container_width=True)
+with col_hint:
+    st.markdown("<span style='color:#334155;font-size:0.8rem;line-height:2.6;'>Minimum ~10 words for best results</span>", unsafe_allow_html=True)
 
-# ---------------------------------------------------------------------------
-# Results
-# ---------------------------------------------------------------------------
+# ── Results ───────────────────────────────────────────────────────────────────
 
 if run_all and complaint_text.strip():
-    word_count = len(complaint_text.split())
-    if word_count < 10:
+    if len(complaint_text.split()) < 10:
         st.warning("Please enter a longer complaint (at least 10 words).")
         st.stop()
 
     with st.spinner("Running all 3 models…"):
         analyzer = load_analyzer()
-        results = analyzer.predict(complaint_text)
+        results  = analyzer.predict(complaint_text)
 
-    # ---- Priority + Summary ----
-    meta_col1, meta_col2 = st.columns([1, 3])
-    with meta_col1:
-        st.markdown("#### Priority Level")
-        st.markdown(priority_badge(results["priority"]), unsafe_allow_html=True)
-        st.caption(f"Issue Group: **{results['issue_group']['prediction']}** "
-                   f"({results['issue_group']['confidence']:.0%})")
+    st.markdown("---")
 
-    with meta_col2:
-        st.markdown("#### Extractive Summary")
-        st.info(results.get("summary", "N/A"))
+    # ── Top stats row ──────────────────────────────────────────────────────
+    priority   = results.get("priority", "Low")
+    issue_pred = results.get("issue_group", {}).get("prediction", "Unknown")
+    issue_conf = results.get("issue_group", {}).get("confidence", 0)
+    summary    = results.get("summary", "")
+    word_count = len(complaint_text.split())
 
-    st.divider()
+    p_cls  = PRIORITY_BADGE.get(priority, "badge-neutral")
+    p_icon = {"Critical": "🔴", "High": "🟠", "Medium": "🔵", "Low": "🟢"}.get(priority, "⚪")
 
-    # ---- Model predictions ----
-    st.markdown("### Model Predictions")
+    st.markdown(
+        f"""
+        <div class="stat-row">
+            <div class="stat-pill">
+                <div class="label">Priority</div>
+                <div class="value">{p_icon} <span class='badge {p_cls}' style='font-size:0.95rem;padding:4px 14px;'>{priority}</span></div>
+            </div>
+            <div class="stat-pill">
+                <div class="label">Issue Group</div>
+                <div class="value" style="font-size:0.95rem;">{issue_pred} <span style='color:#475569;font-size:0.75rem;'>({issue_conf:.0%})</span></div>
+            </div>
+            <div class="stat-pill">
+                <div class="label">Word Count</div>
+                <div class="value">{word_count}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    MODEL_LABELS = {
-        "baseline":   "TF-IDF + Logistic Regression",
-        "bilstm":     "BiLSTM + Attention",
-        "distilbert": "DistilBERT (Fine-Tuned)",
-    }
-    COLORS = {
-        "baseline":   "#4C72B0",
-        "bilstm":     "#DD8452",
-        "distilbert": "#55A868",
-    }
+    if summary:
+        st.markdown(
+            f"<div class='glass-card' style='margin-bottom:1.2rem;'>"
+            f"<div class='section-label'>AI Summary</div>"
+            f"<div style='color:#CBD5E1;font-size:0.92rem;line-height:1.65;'>{summary}</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── Model predictions ──────────────────────────────────────────────────
+    st.markdown('<div class="section-label">Model Predictions</div>', unsafe_allow_html=True)
+
     most_confident = results.get("most_confident_model", "")
-    model_order = ["baseline", "bilstm", "distilbert"]
-
     cols = st.columns(3)
-    for col, model_key in zip(cols, model_order):
+
+    for col, model_key in zip(cols, ["baseline", "bilstm", "distilbert"]):
+        r    = results.get(model_key, {})
+        meta = MODEL_META[model_key]
+        is_winner = model_key == most_confident
+
         with col:
-            r = results.get(model_key, {})
-            is_winner = model_key == most_confident
-
-            label = MODEL_LABELS[model_key]
-            if is_winner:
-                label += " ⭐"
-
-            st.markdown(f"**{label}**")
-
             if "error" in r:
-                st.error(f"Model not available: {r['error']}")
+                st.markdown(
+                    f"<div class='glass-card'>"
+                    f"<div class='model-name' style='color:{meta['color']};'>{meta['label']}</div>"
+                    f"<div style='color:#EF4444;font-size:0.85rem;'>Model unavailable</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
                 continue
 
             pred = r.get("prediction", "N/A")
             conf = r.get("confidence", 0.0)
-            color = COLORS[model_key]
+            winner_tag = "<span class='winner-star'>BEST</span>" if is_winner else ""
+            ring_cls   = "winner-ring" if is_winner else ""
 
             st.markdown(
-                f"<div style='font-size:1.1rem; font-weight:700; color:{color};'>{pred}</div>",
+                f"<div class='glass-card {ring_cls}'>"
+                f"<div class='model-name' style='color:{meta['color']};'>{meta['label']}{winner_tag}</div>"
+                f"<div class='model-pred' style='color:#F1F5F9;'>{pred}</div>"
+                f"<div class='conf-text'>{conf:.1%} confidence</div>"
+                f"</div>",
                 unsafe_allow_html=True,
             )
-            st.progress(conf, text=f"Confidence: {conf:.1%}")
+
+            st.progress(conf)
 
             if r.get("all_probabilities"):
-                fig = plot_proba_chart(r["all_probabilities"], pred)
+                fig = plot_proba_dark(r["all_probabilities"], pred, meta["color"])
                 st.pyplot(fig, use_container_width=True)
                 plt.close(fig)
 
-    # ---- Attention visualization ----
-    bilstm_result = results.get("bilstm", {})
-    if bilstm_result.get("attention_tokens"):
-        st.divider()
-        st.markdown("### BiLSTM Attention Weights")
-        st.caption("Darker/redder tokens received higher attention during classification.")
-        attn_html = render_attention_html(
-            bilstm_result["attention_tokens"],
-            bilstm_result["attention_weights"],
-        )
-        st.markdown(attn_html, unsafe_allow_html=True)
+    # ── Attention weights ──────────────────────────────────────────────────
+    bilstm_r = results.get("bilstm", {})
+    if bilstm_r.get("attention_tokens"):
+        st.markdown("---")
+        st.markdown('<div class="section-label">BiLSTM Attention Weights</div>', unsafe_allow_html=True)
+        st.markdown("<span style='color:#475569;font-size:0.8rem;'>Brighter tokens received higher attention during classification.</span>", unsafe_allow_html=True)
+        attn_html = render_attention_html(bilstm_r["attention_tokens"], bilstm_r["attention_weights"])
+        st.markdown(f"<div class='attn-wrap'>{attn_html}</div>", unsafe_allow_html=True)
 
-    # ---- Issue group probabilities ----
+    # ── Issue group breakdown ──────────────────────────────────────────────
     iss = results.get("issue_group", {})
     if iss.get("all_probabilities"):
-        st.divider()
-        st.markdown("### Issue Group Probabilities")
-        fig, ax = plt.subplots(figsize=(8, 3))
-        items = sorted(iss["all_probabilities"].items(), key=lambda x: x[1], reverse=True)
+        st.markdown("---")
+        st.markdown('<div class="section-label">Issue Group Breakdown</div>', unsafe_allow_html=True)
+
+        items  = sorted(iss["all_probabilities"].items(), key=lambda x: x[1], reverse=True)
         labels = [k for k, _ in items]
         values = [v for _, v in items]
-        colors = ["#17a2b8" if k == iss["prediction"] else "#dee2e6" for k in labels]
-        ax.barh(labels[::-1], values[::-1], color=colors[::-1])
+        colors = ["rgba(99,102,241,0.6)" if k == iss["prediction"] else "rgba(255,255,255,0.07)" for k in labels]
+
+        fig, ax = plt.subplots(figsize=(9, 3))
+        bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1], height=0.55)
         ax.set_xlim(0, 1)
-        ax.set_xlabel("Probability")
-        ax.grid(axis="x", alpha=0.3)
-        plt.tight_layout()
-        st.pyplot(fig)
+        ax.tick_params(labelsize=8, length=0)
+        ax.grid(axis="x", linewidth=0.5)
+        ax.spines[:].set_visible(False)
+        for bar, val in zip(bars, values[::-1]):
+            ax.text(min(val + 0.015, 0.93), bar.get_y() + bar.get_height() / 2,
+                    f"{val:.1%}", va="center", fontsize=8, color="#94A3B8")
+        plt.tight_layout(pad=0.5)
+        st.pyplot(fig, use_container_width=True)
         plt.close(fig)
 
-    st.success("Analysis complete.")
+    st.markdown(
+        "<div style='margin-top:1.5rem;padding:10px 16px;background:rgba(16,185,129,0.07);"
+        "border:1px solid rgba(16,185,129,0.2);border-radius:10px;color:#6EE7B7;"
+        "font-size:0.85rem;'>✓ Analysis complete</div>",
+        unsafe_allow_html=True,
+    )
