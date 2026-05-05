@@ -45,6 +45,9 @@ st.markdown("""
 <style>
 /* ── Base ── */
 .stApp { background: #080B12; }
+[data-testid="stAppViewContainer"] { background: #080B12; }
+[data-testid="stHeader"] { background: #080B12 !important; }
+[data-testid="stMain"] { background: #080B12; }
 
 [data-testid="stSidebar"] {
     background: #0D1117;
@@ -63,13 +66,14 @@ p, span, label, div { color: #CBD5E1; }
 
 /* ── Text area ── */
 .stTextArea textarea {
-    background: rgba(255,255,255,0.03) !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
+    background: #0D1117 !important;
+    border: 1px solid #1E2D3D !important;
     border-radius: 12px !important;
     color: #E2E8F0 !important;
     font-size: 0.95rem !important;
     padding: 14px !important;
     transition: border-color 0.2s;
+    caret-color: #6366f1 !important;
 }
 .stTextArea textarea:focus {
     border-color: rgba(99,102,241,0.5) !important;
@@ -313,14 +317,14 @@ def plot_proba_dark(all_probabilities, prediction, accent_color, height=220):
     items   = sorted(all_probabilities.items(), key=lambda x: x[1], reverse=True)[:8]
     labels  = [k[:24] for k, _ in items]
     values  = [v for _, v in items]
-    colors  = [accent_color if lbl[:24] == prediction[:24] else "rgba(255,255,255,0.07)" for lbl in labels]
+    colors  = [accent_color if lbl[:24] == prediction[:24] else "#1E2533" for lbl in labels]
 
     fig, ax = plt.subplots(figsize=(3.6, height / 72))
     bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1], height=0.6)
     ax.set_xlim(0, 1)
     ax.tick_params(labelsize=7, length=0)
     ax.set_xlabel("")
-    ax.axvline(0, color="rgba(255,255,255,0.05)", linewidth=0.5)
+    ax.axvline(0, color="#1E2533", linewidth=0.5)
     ax.grid(axis="x", linewidth=0.5)
     for bar, val in zip(bars, values[::-1]):
         ax.text(min(val + 0.02, 0.93), bar.get_y() + bar.get_height() / 2,
@@ -524,7 +528,7 @@ if run_all and complaint_text.strip():
         items  = sorted(iss["all_probabilities"].items(), key=lambda x: x[1], reverse=True)
         labels = [k for k, _ in items]
         values = [v for _, v in items]
-        colors = ["rgba(99,102,241,0.6)" if k == iss["prediction"] else "rgba(255,255,255,0.07)" for k in labels]
+        colors = ["#6366f1" if k == iss["prediction"] else "#1E2533" for k in labels]
 
         fig, ax = plt.subplots(figsize=(9, 3))
         bars = ax.barh(labels[::-1], values[::-1], color=colors[::-1], height=0.55)
