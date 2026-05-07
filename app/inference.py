@@ -372,6 +372,35 @@ class ComplaintAnalyzer:
         if confidences:
             results["most_confident_model"] = max(confidences, key=confidences.get)
 
+        # ── Ambiguity detection (per model) ───────────────────────────────────
+        UNCERTAINTY_WORDS = {"not sure", "unclear", "confusing", "confused",
+                             "not certain", "unsure", "don't know", "not sure"}
+        text_lower = text.lower()
+        has_uncertainty_words = any(w in text_lower for w in UNCERTAINTY_WORDS)
+
+        for m in ["baseline", "bilstm", "distilbert"]:
+            r = results.get(m, {})
+            if "all_probabilities" not in r or "error" in r:
+                continue
+            probs_sorted = sorted(r["all_probabilities"].values(), reverse=True)
+            top1 = probs_sorted[0] if len(probs_sorted) > 0 else 1.0
+            top2 = probs_sorted[1] if len(probs_sorted) > 1 else 0.0
+            gap  = top1 - top2
+
+            is_ambiguous = (gap < 0.15) or (top1 < 0.6) or has_uncertainty_words
+
+            # Second-best prediction label
+            if len(probs_sorted) > 1:
+                second_label = max(
+                    {k: v for k, v in r["all_probabilities"].items() if k != r["prediction"]}.items(),
+                    key=lambda x: x[1], default=(None, 0)
+                )
+                r["second_prediction"] = second_label[0]
+                r["second_confidence"] = second_label[1]
+
+            r["is_ambiguous"] = is_ambiguous
+            r["confidence_gap"] = gap
+
         return results
 
     def load_comparison_metrics(self) -> dict | None:

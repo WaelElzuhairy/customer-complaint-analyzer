@@ -34,7 +34,7 @@ MODELS_DIR  = BASE_DIR / "models"
 
 st.set_page_config(
     page_title="Complaint Analyzer",
-    page_icon="⚡",
+    page_icon="📋",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -398,20 +398,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Example pills ─────────────────────────────────────────────────────────────
-
-st.markdown('<div class="section-label">Quick Examples</div>', unsafe_allow_html=True)
-cols_ex = st.columns(len(EXAMPLE_COMPLAINTS))
-selected_example = None
-for col, (name, text) in zip(cols_ex, EXAMPLE_COMPLAINTS.items()):
-    if col.button(name, use_container_width=True):
-        selected_example = text
-
 # ── Input ─────────────────────────────────────────────────────────────────────
 
 complaint_text = st.text_area(
     "Complaint narrative",
-    value=selected_example or "",
+    value="",
     height=170,
     placeholder="Paste or type a consumer complaint narrative here…",
     label_visibility="collapsed",
@@ -419,7 +410,7 @@ complaint_text = st.text_area(
 
 col_btn, col_hint = st.columns([1, 5])
 with col_btn:
-    run_all = st.button("⚡ Analyze", type="primary", disabled=not complaint_text.strip(), use_container_width=True)
+    run_all = st.button("Analyze", type="primary", disabled=not complaint_text.strip(), use_container_width=True)
 with col_hint:
     st.markdown("<span style='color:#334155;font-size:0.8rem;line-height:2.6;'>Minimum ~10 words for best results</span>", unsafe_allow_html=True)
 
@@ -497,16 +488,38 @@ if run_all and complaint_text.strip():
                 )
                 continue
 
-            pred = r.get("prediction", "N/A")
-            conf = r.get("confidence", 0.0)
-            winner_tag = "<span class='winner-star'>BEST</span>" if is_winner else ""
-            ring_cls   = "winner-ring" if is_winner else ""
+            pred         = r.get("prediction", "N/A")
+            conf         = r.get("confidence", 0.0)
+            is_ambiguous = r.get("is_ambiguous", False)
+            second_pred  = r.get("second_prediction", "")
+            second_conf  = r.get("second_confidence", 0.0)
+            winner_tag   = "<span class='winner-star'>BEST</span>" if is_winner else ""
+            ring_cls     = "winner-ring" if is_winner else ""
+
+            ambig_html = ""
+            if is_ambiguous:
+                ambig_html = (
+                    f"<div style='margin-top:8px;padding:7px 10px;"
+                    f"background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);"
+                    f"border-radius:8px;font-size:0.75rem;color:#FCD34D;'>"
+                    f"⚠ May require manual review"
+                    f"</div>"
+                )
+
+            second_html = ""
+            if second_pred and is_ambiguous:
+                second_html = (
+                    f"<div style='margin-top:6px;font-size:0.78rem;color:#64748B;'>"
+                    f"Runner-up: <span style='color:#94A3B8;'>{second_pred}</span> "
+                    f"<span style='color:#475569;'>({second_conf:.1%})</span></div>"
+                )
 
             st.markdown(
                 f"<div class='glass-card {ring_cls}'>"
                 f"<div class='model-name' style='color:{meta['color']};'>{meta['label']}{winner_tag}</div>"
                 f"<div class='model-pred' style='color:#F1F5F9;'>{pred}</div>"
                 f"<div class='conf-text'>{conf:.1%} confidence</div>"
+                f"{second_html}{ambig_html}"
                 f"</div>",
                 unsafe_allow_html=True,
             )

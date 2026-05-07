@@ -179,23 +179,21 @@ ISSUE_GROUP_MAP = {
 # ---------------------------------------------------------------------------
 
 PRIORITY_KEYWORDS = {
+    "critical": [
+        "fraud", "identity theft", "unauthorized transaction", "scam",
+        "stolen", "hacked", "account hacked", "someone used my account",
+        "money missing", "funds missing", "foreclosure", "eviction",
+    ],
     "high": [
-        "fraud", "scam", "identity theft", "unauthorized transaction",
-        "cannot access money", "foreclosure", "stolen", "identity stolen",
-        "unauthorized charge", "garnish", "wage garnishment", "sue",
-        "lawsuit", "legal action", "repossession", "harassment",
-        "threaten", "fdcpa", "fcra violation",
+        "harassment", "threatening", "lawsuit", "attorney", "legal action",
+        "account locked", "locked out", "cannot access", "cannot log in",
+        "urgent", "immediate", "miss a payment",
     ],
     "medium": [
-        "billing dispute", "delayed refund", "overcharged", "late fee",
-        "incorrect balance", "wrong amount", "error on report",
-        "inaccurate information", "dispute", "penalty", "denied",
-        "closed account", "cannot open account",
+        "error", "incorrect", "dispute", "billing", "refund", "charge",
+        "overcharge", "delay", "wrong balance",
     ],
-    "low": [
-        "dissatisfaction", "general complaint", "question", "inquiry",
-        "information request", "status update", "slow response",
-    ],
+    "low": [],
 }
 
 # ---------------------------------------------------------------------------
@@ -425,14 +423,15 @@ def score_priority(text: str) -> str:
         Priority label string.
     """
     text_lower = text.lower()
-    high_count = sum(1 for kw in PRIORITY_KEYWORDS["high"] if kw in text_lower)
-    med_count = sum(1 for kw in PRIORITY_KEYWORDS["medium"] if kw in text_lower)
+    critical_count = sum(1 for kw in PRIORITY_KEYWORDS["critical"] if kw in text_lower)
+    high_count     = sum(1 for kw in PRIORITY_KEYWORDS["high"]     if kw in text_lower)
+    med_count      = sum(1 for kw in PRIORITY_KEYWORDS["medium"]   if kw in text_lower)
 
-    if high_count >= 2:
+    if critical_count >= 1:
         return "Critical"
     elif high_count >= 1:
         return "High"
-    elif med_count >= 2:
+    elif med_count >= 1:
         return "Medium"
     else:
         return "Low"
