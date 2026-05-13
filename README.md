@@ -48,7 +48,7 @@ customer-complaint-analyzer/
 - NVIDIA GPU recommended (runs on CPU but training will be slow)
 - ~5 GB free disk space
 
-### Install dependencies
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -58,43 +58,43 @@ pip install -r requirements.txt
 
 ## Running the Pipeline
 
-### Step 1 — Download & prepare data
+### Step 1 — Download & Prepare Data
 
 ```bash
 python src/data_prep.py
 ```
 
 This will:
-- Download the CFPB dataset (~1.8 GB zip → ~3 GB CSV)
-- Filter to narratives from Aug 2023+, ≥20 words
+- Fetch the CFPB dataset (~1.8 GB zip → ~3 GB CSV)
+- Filter to narratives from Aug 2023 onward with at least 20 words
 - Balance classes, encode labels
 - Save train/val/test splits to `data/processed/`
 
-**Expected time:** 20–40 minutes (mostly download speed)
+**Expected time:** 20–40 minutes (mostly depends on download speed)
 
 ### Step 2 — Exploratory Data Analysis
 
-Open and run `notebooks/01_eda.ipynb`. Review the cutoff decision in cell 8 for max_length.
+Open and run `notebooks/01_eda.ipynb`. Check cell 8 for the max_length cutoff decision.
 
-### Step 3 — Train all models (run notebooks in order)
+### Step 3 — Train All Models (run notebooks in order)
 
 ```bash
 jupyter notebook
 ```
 
-Open and run each notebook sequentially:
+Run each notebook sequentially:
 1. `notebooks/02_baseline.ipynb` (~5 min)
 2. `notebooks/03_attention_model.ipynb` (~30–60 min on GPU)
 3. `notebooks/04_transformer_finetune.ipynb` (~45–90 min on GPU)
-4. `notebooks/05_error_analysis.ipynb` (after all models trained)
+4. `notebooks/05_error_analysis.ipynb` (after all models are trained)
 
-### Step 4 — Launch the demo app
+### Step 4 — Launch the Demo App
 
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
-The app will open at `http://localhost:8501`
+The app will be available at `http://localhost:8501`
 
 ---
 
@@ -112,9 +112,9 @@ Pre-trained models are hosted on HuggingFace Hub:
 | Label encoders | `models/label_encoder_*.joblib` | included in repo |
 | Vocabulary | `models/vocab.json` | included in repo |
 
-### Download pre-trained models
+### Download Pre-trained Models
 
-Instead of training from scratch, download the pre-trained models from HuggingFace Hub:
+To skip training and use the pre-trained models directly, download them from HuggingFace Hub:
 
 ```python
 from huggingface_hub import hf_hub_download, snapshot_download
@@ -145,25 +145,25 @@ huggingface-cli download Wael-Elzuhairy/complaint-analyzer-models --local-dir mo
 
 ## Results
 
-After training, results are saved to `results/`:
+After training, all results are saved to `results/`:
 
 | File | Content |
 |------|---------|
-| `comparison_table.csv` | Side-by-side metrics for all models |
-| `*_metrics.json` | Per-model detailed metrics |
+| `comparison_table.csv` | Side-by-side metrics across all models |
+| `*_metrics.json` | Detailed per-model metrics |
 | `confusion_matrix_*.png` | Normalized confusion matrices |
-| `per_class_f1_comparison.png` | Grouped bar chart |
+| `per_class_f1_comparison.png` | Grouped bar chart by class |
 | `model_comparison_bar.png` | Accuracy/F1 overview chart |
-| `attention_visualization.png` | BiLSTM attention on sample texts |
-| `category_summaries.json` | TextRank summaries per product |
+| `attention_visualization.png` | BiLSTM attention weights on sample inputs |
+| `category_summaries.json` | TextRank summaries per product category |
 
 ---
 
 ## Deployment on Streamlit Community Cloud
 
-### 1. Repository is already on GitHub
+### 1. Repository is Already on GitHub
 
-The code is at: **https://github.com/WaelElzuhairy/customer-complaint-analyzer**
+The code lives at: **https://github.com/WaelElzuhairy/customer-complaint-analyzer**
 
 Clone it with:
 ```bash
@@ -172,29 +172,29 @@ cd customer-complaint-analyzer
 ```
 
 > **Note:** Large model files are excluded from the repo and hosted on HuggingFace Hub.
-> See the [Models section](#models) above for download instructions.
+> Refer to the [Models section](#models) above for download instructions.
 
 ### 2. Deploy on Streamlit Community Cloud
 
 1. Go to [share.streamlit.io](https://share.streamlit.io)
 2. Sign in with GitHub
 3. Click **"New app"**
-4. Select your repository, branch `main`, and main file `app/streamlit_app.py`
+4. Select your repository, branch `main`, and set the main file to `app/streamlit_app.py`
 5. Click **Deploy**
 
-### 3. Streamlit Cloud requirements
+### 3. Streamlit Cloud Requirements
 
-Create a `packages.txt` file (for system-level dependencies) if needed:
+Add a `packages.txt` file for any system-level dependencies if needed:
 
 ```
-# packages.txt  (empty if no system packages required)
+# packages.txt  (leave empty if no system packages are required)
 ```
 
-The `requirements.txt` file in the project root is automatically used by Streamlit Cloud.
+Streamlit Cloud will automatically pick up `requirements.txt` from the project root.
 
 ### Secrets (if needed)
 
-If models are loaded from HuggingFace Hub or S3, add credentials in:
+If models are loaded from HuggingFace Hub or S3, add credentials under:
 **Streamlit Cloud → App → Settings → Secrets**
 
 ---
@@ -204,16 +204,16 @@ If models are loaded from HuggingFace Hub or S3, add credentials in:
 | Question | Answer Source |
 |----------|--------------|
 | Can DistilBERT outperform BiLSTM+Attention? | `results/comparison_table.csv` |
-| Which categories are hardest/easiest? | `results/per_class_f1_comparison.png` |
-| Does attention improve over baseline? | Notebooks 02 vs 03 metrics |
-| Where does the Transformer fail? | `notebooks/05_error_analysis.ipynb` |
+| Which categories are hardest/easiest to classify? | `results/per_class_f1_comparison.png` |
+| Does attention improve over the baseline? | Notebooks 02 vs 03 metrics |
+| Where does the Transformer fall short? | `notebooks/05_error_analysis.ipynb` |
 | Can this system help prioritize complaints? | `results/eda_priority_distribution.png` |
 
 ---
 
 ## Citation
 
-If using this project for academic work:
+If using this project for academic purposes:
 
 ```
 @misc{complaint-analyzer-2026,
