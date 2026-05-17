@@ -7,7 +7,7 @@ trains three models for multi-class classification, evaluates and compares them,
 and serves a live Streamlit demo application.
 
 ---
-
+ 
 ## Project Structure
 
 ```
